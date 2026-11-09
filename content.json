@@ -32,7 +32,16 @@
     },
     {
       "icon": "fa-brands fa-tiktok",
-      "url": "https://www.tiktok.com/@raynodon"
+      "url": {
+        "en": "https://www.tiktok.com/@raynodon",
+        "zh": "",
+        "ja": ""
+      },
+      "title": {
+        "en": "TikTok",
+        "zh": "抖音",
+        "ja": "TikTok"
+      }
     },
     {
       "icon": "fa-brands fa-x-twitter",
@@ -94,7 +103,12 @@
         },
         "url": "https://open.spotify.com/artist/6FVhtMW0IvGPBUEmEAO0O6",
         "icon": "fa-brands fa-spotify",
-        "image": ""
+        "image": "",
+        "rank": {
+          "en": 1,
+          "ja": 1,
+          "zh": 3
+        }
       },
       {
         "label": {
@@ -104,7 +118,12 @@
         },
         "url": "https://music.163.com/#/artist?id=34381748",
         "icon": "",
-        "image": "netease.png"
+        "image": "netease.png",
+        "rank": {
+          "zh": 1,
+          "en": 4,
+          "ja": 4
+        }
       },
       {
         "label": {
@@ -114,7 +133,12 @@
         },
         "url": "https://music.apple.com/cn/artist/raynodon/1872558339",
         "icon": "fa-brands fa-apple",
-        "image": ""
+        "image": "",
+        "rank": {
+          "en": 2,
+          "ja": 2,
+          "zh": 2
+        }
       },
       {
         "label": {
@@ -124,9 +148,28 @@
         },
         "url": "https://music.amazon.com/artists/B0GKWPL6ND/raynodon",
         "icon": "fa-brands fa-amazon",
-        "image": ""
+        "image": "",
+        "rank": {
+          "en": 3,
+          "ja": 3,
+          "zh": 4
+        }
       }
     ]
   },
-  "sections": []
+  "sections": [],
+  "player": {
+    "show": true,
+    "title": {
+      "en": "Listen here",
+      "zh": "在这里试听",
+      "ja": "ここで試聴"
+    },
+    "url": "https://open.spotify.com/artist/6FVhtMW0IvGPBUEmEAO0O6",
+    "handle": {
+      "en": "LISTEN",
+      "zh": "试听",
+      "ja": "試聴"
+    }
+  }
 }
