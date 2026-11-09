@@ -103,6 +103,11 @@
         }
         body.no-banner .player { top: 0; }
         .player.closed { transform: translateX(-100%); box-shadow: none; }
+        body { transition: padding-left 0.4s cubic-bezier(.2,.8,.2,1); }
+        @media (min-width: 760px) and (max-width: 1400px) {
+            body.player-open { padding-left: 360px; }
+            body.player-open .side-commission { position: relative; right: 0; top: 0; width: auto; margin-bottom: 20px; box-sizing: border-box; animation: none; }
+        }
         .player-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 12px; font-size: 0.95rem; font-weight: bold; letter-spacing: 1px; }
         .player-head i { color: #00c2cc; margin-right: 8px; }
         .player-close { background: none; border: 0; color: #aaa; cursor: pointer; font-size: 1rem; padding: 4px; }
@@ -271,11 +276,11 @@ function renderPlayer() {
     const p = DATA.player || {};
     const embed = p.show ? toEmbed(p.url) : '';
     const key = embed + '|' + (p.height || '');
-    if (!embed) { slot.innerHTML = ''; playerKey = ''; return; }
+    if (!embed) { slot.innerHTML = ''; playerKey = ''; document.body.classList.remove('player-open'); return; }
     if (key !== playerKey) {
         // 默认：宽屏展开，窄屏（手机）收起只露把手；访客手动开关过的话记住他的选择
-        let closed = window.innerWidth < 1300;
-        try { const s = localStorage.getItem('playerClosed'); if (s !== null) closed = s === '1'; } catch (e) {}
+        let closed = window.innerWidth < 760;
+        try { const s = localStorage.getItem('playerClosed2'); if (s !== null) closed = s === '1'; } catch (e) {}
         slot.innerHTML = `
         <aside class="player${closed ? ' closed' : ''}" id="player">
             <div class="player-head">
@@ -290,12 +295,14 @@ function renderPlayer() {
         </aside>`;
         playerKey = key;
     }
+    document.body.classList.toggle('player-open', !document.getElementById('player').classList.contains('closed'));
     document.getElementById('playerTitle').textContent = t(p.title);
     document.getElementById('playerHandleText').textContent = t(p.handle) || t(p.title);
 }
 function togglePlayer() {
     const closed = document.getElementById('player').classList.toggle('closed');
-    try { localStorage.setItem('playerClosed', closed ? '1' : '0'); } catch (e) {}
+    document.body.classList.toggle('player-open', !closed);
+    try { localStorage.setItem('playerClosed2', closed ? '1' : '0'); } catch (e) {}
 }
 
 document.querySelectorAll('.lang-nav button').forEach(btn => btn.addEventListener('click', () => {
