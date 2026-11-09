@@ -307,25 +307,26 @@ function togglePlayer() {
 
 document.querySelectorAll('.lang-nav button').forEach(btn => btn.addEventListener('click', () => {
     LANG = btn.dataset.lang;
-    try { localStorage.setItem('lang2', LANG); } catch (e) {}
+    try { localStorage.setItem('lang', LANG); } catch (e) {}
     render();
 }));
 
 // 第一次来的访客：按浏览器 / 系统语言自动选择；手动切换过就记住他的选择
 function detectLang() {
     const langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
-    const codes = langs.map(l => String(l).toLowerCase());
-    // 英文常被浏览器默认放在列表里，所以只要列表里出现中文或日文，就优先用它（按出现的先后）
-    const cj = codes.find(c => c.startsWith('zh') || c.startsWith('ja'));
-    if (cj) return cj.startsWith('zh') ? 'zh' : 'ja';
-    if (codes.some(c => c.startsWith('en'))) return 'en';
+    for (const l of langs) {
+        const c = String(l).toLowerCase();
+        if (c.startsWith('zh')) return 'zh';
+        if (c.startsWith('ja')) return 'ja';
+        if (c.startsWith('en')) return 'en';
+    }
     return null;
 }
 
 function start(data) {
     DATA = data;
     let saved = null;
-    try { saved = localStorage.getItem('lang2'); } catch (e) {}
+    try { saved = localStorage.getItem('lang'); } catch (e) {}
     LANG = saved || detectLang() || data.defaultLang || 'en';
     render();
 }
