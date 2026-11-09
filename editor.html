@@ -145,10 +145,16 @@ const SCHEMA = [
       label: T.i18n('左边的文字'),
       links: LINK,
   }},
-  { title: '音乐 / 作品', icon: 'fa-solid fa-music', key: 'music', fields: {
+  { title: '音乐 / 作品', icon: 'fa-solid fa-music', key: 'music', hint: '平台链接会显示成 Linktree 那样的一排大按钮，用 ↑↓ 调顺序。', fields: {
       title: T.i18n('板块标题'),
       youtubePlaylist: T.text('YouTube 播放列表 ID（可留空）', '播放列表网址里 list= 后面那串，也可以直接粘贴整个网址'),
       links: { ...LINK, addLabel: '添加平台链接' },
+  }},
+  { title: '试听窗口（左侧）', icon: 'fa-solid fa-headphones', key: 'player', hint: '电脑上浮在页面左边，可以收起；手机上显示在页面下方。', fields: {
+      show: T.bool('显示试听窗口'),
+      title: T.i18n('窗口标题'),
+      url: T.text('要播放的链接', '直接粘贴分享链接即可：Spotify 的艺人 / 专辑 / 单曲 / 歌单，Apple Music 的专辑或单曲，网易云的单曲 / 歌单 / 专辑'),
+      height: { type: 'select', label: '窗口高度', options: [['152', '小（只显示一首）'], ['352', '中（显示歌曲列表）'], ['450', '大']] },
   }},
   { title: '自定义板块', icon: 'fa-solid fa-layer-group', key: 'sections', hint: '想加新内容（比如演出信息、专辑、合作、个人简历）就在这里加板块，会显示在音乐板块下面。', schema: {
       type: 'list', addLabel: '添加板块',
@@ -199,7 +205,7 @@ function fieldNode(spec, obj, key, rerender) {
     wrap.append(el('input', { type: 'text', value: obj[key] ?? '', oninput: e => { obj[key] = e.target.value; changed(); } }));
   } else if (spec.type === 'select') {
     const s = el('select', { onchange: e => { obj[key] = e.target.value; changed(); } },
-      spec.options.map(([v, l]) => { const o = el('option', { value: v }, l); if (obj[key] === v) o.selected = true; return o; }));
+      spec.options.map(([v, l]) => { const o = el('option', { value: v }, l); if (String(obj[key]) === v) o.selected = true; return o; }));
     wrap.append(s);
   } else if (spec.type === 'bool') {
     const cb = el('input', { type: 'checkbox', onchange: e => { obj[key] = e.target.checked; changed(); } });
@@ -325,7 +331,16 @@ function loadRemote() {
 // 启动：有草稿就用草稿
 let draft = null;
 try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
-if (draft) load(draft, '已恢复上次未完成的草稿'); else loadRemote();
+if (draft) {
+  const draftKeys = Object.keys(draft);
+  load(draft, '已恢复上次未完成的草稿');
+  // 网站新增了设置项时，把草稿里没有的部分从网站当前的 content.json 补上，草稿已有的内容不动
+  fetch('content.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(remote => {
+    if (!remote) return;
+    const added = Object.keys(remote).filter(k => !draftKeys.includes(k));
+    if (added.length) { added.forEach(k => DATA[k] = remote[k]); renderForm(); changed(); $('#status').textContent = '已恢复草稿，并补上了新的设置项'; }
+  }).catch(() => {});
+} else loadRemote();
 </script>
 </body>
 </html>

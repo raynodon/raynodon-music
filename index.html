@@ -78,7 +78,44 @@
         .video { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; background: #000; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
         .video iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
 
+        /* Linktree 式的大按钮 */
+        .link-tree { display: flex; flex-direction: column; gap: 10px; }
+        .link-tree a {
+            display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+            border-radius: 12px; border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.04); color: #fff; text-decoration: none;
+            font-weight: bold; font-size: 0.95rem; transition: 0.25s;
+        }
+        .link-tree a:hover { background: rgba(124,58,237,0.25); border-color: rgba(124,58,237,0.7); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(124,58,237,0.25); }
+        .link-tree .lt-icon { width: 24px; display: flex; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+        .link-tree .lt-icon img { height: 20px; width: auto; border-radius: 3px; }
+        .link-tree .lt-label { flex: 1; text-align: center; }
+        .link-tree .lt-arrow { width: 24px; text-align: right; opacity: 0.4; font-size: 0.8rem; transition: 0.25s; }
+        .link-tree a:hover .lt-arrow { opacity: 1; transform: translateX(3px); }
+
+        /* 试听侧窗口 */
+        .player {
+            position: fixed; left: 30px; top: 100px; width: 300px; z-index: 1000;
+            border-radius: 15px; overflow: hidden;
+            background: rgba(15,15,15,0.85); border: 1px solid rgba(0,150,160,0.5); backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(0,150,160,0.2);
+            animation: fadeInSlidePlayer 1s ease-out;
+        }
+        body.no-banner .player { top: 60px; }
+        @keyframes fadeInSlidePlayer { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+        .player-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; font-size: 0.85rem; font-weight: bold; }
+        .player-head i { color: #00c2cc; margin-right: 6px; }
+        .player-toggle { background: none; border: 0; color: #aaa; cursor: pointer; font-size: 0.9rem; padding: 2px 4px; }
+        .player-toggle:hover { color: #fff; }
+        .player iframe { display: block; width: 100%; border: 0; }
+        .player.min { width: auto; }
+        .player.min iframe { display: none; }
+
         @media (max-width: 1000px) { .side-commission { position: relative; right: 0; top: 0 !important; width: auto; margin-bottom: 20px; box-sizing: border-box; } }
+        @media (max-width: 1300px) {
+            .player { position: relative; left: 0; top: 0 !important; width: auto; margin-bottom: 20px; animation: none; }
+            .player.min { width: auto; }
+        }
     </style>
 </head>
 <body>
@@ -96,6 +133,7 @@
     </div>
     <div id="side"></div>
     <div id="main"></div>
+    <div id="playerSlot"></div>
 </div>
 
 <script>
@@ -169,14 +207,21 @@ function render() {
         </div>`;
     }
 
-    // 音乐
+    // 音乐：Linktree 式入口
     const m = d.music || {};
+    const treeLink = l => `
+        <a href="${esc(l.url)}" target="_blank" rel="noopener">
+            <span class="lt-icon">${iconHtml(l)}</span>
+            <span class="lt-label">${esc(t(l.label))}</span>
+            <span class="lt-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+        </a>`;
     html += `
         <div class="section">
             <h3>${esc(t(m.title))}</h3>
-            ${m.youtubePlaylist ? `<div class="video"><iframe src="https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(m.youtubePlaylist)}" allowfullscreen></iframe></div>` : ''}
-            <div class="btn-row">${(m.links || []).map(linkBtn).join('')}</div>
+            <div class="link-tree">${(m.links || []).filter(l => l.url).map(treeLink).join('')}</div>
+            ${m.youtubePlaylist ? `<div class="video" style="margin: 20px 0 0 0;"><iframe src="https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(m.youtubePlaylist)}" allowfullscreen></iframe></div>` : ''}
         </div>`;
+
 
     // 自定义板块
     (d.sections || []).forEach(s => {
@@ -189,7 +234,51 @@ function render() {
     });
 
     document.getElementById('main').innerHTML = html;
+    renderPlayer();
     document.querySelectorAll('.lang-nav button').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === LANG));
+}
+
+// 把普通的分享链接转成可嵌入的播放器地址
+function toEmbed(url) {
+    url = String(url || '').trim();
+    if (!url) return '';
+    let m = url.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(?:embed\/)?(artist|album|track|playlist)\/([A-Za-z0-9]+)/);
+    if (m) return `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator&theme=0`;
+    if (/\/\/music\.apple\.com\//.test(url)) return url.replace('//music.apple.com/', '//embed.music.apple.com/');
+    m = url.match(/music\.163\.com\/.*?(song|playlist|album)\?id=(\d+)/);
+    if (m) return `https://music.163.com/outchain/player?type=${{ song: 2, playlist: 0, album: 1 }[m[1]]}&id=${m[2]}&auto=0&height=430`;
+    return url; // 已经是嵌入地址，原样使用
+}
+
+// 试听窗口单独渲染：切换语言时只改标题，不重新加载播放器，正在播放的歌不会断
+let playerKey = '';
+function renderPlayer() {
+    const slot = document.getElementById('playerSlot');
+    const p = DATA.player || {};
+    const embed = p.show ? toEmbed(p.url) : '';
+    const key = embed + '|' + (p.height || '');
+    if (!embed) { slot.innerHTML = ''; playerKey = ''; return; }
+    if (key !== playerKey) {
+        let min = false;
+        try { min = localStorage.getItem('playerMin') === '1'; } catch (e) {}
+        slot.innerHTML = `
+        <div class="player${min ? ' min' : ''}" id="player">
+            <div class="player-head">
+                <span><i class="fa-solid fa-headphones"></i><span id="playerTitle"></span></span>
+                <button class="player-toggle" onclick="togglePlayer()" title="收起 / 展开"><i class="fa-solid ${min ? 'fa-chevron-down' : 'fa-minus'}"></i></button>
+            </div>
+            <iframe src="${esc(embed)}" height="${Number(p.height) || 352}" loading="lazy"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+        </div>`;
+        playerKey = key;
+    }
+    document.getElementById('playerTitle').textContent = t(p.title);
+}
+function togglePlayer() {
+    const el = document.getElementById('player');
+    const min = el.classList.toggle('min');
+    el.querySelector('.player-toggle i').className = 'fa-solid ' + (min ? 'fa-chevron-down' : 'fa-minus');
+    try { localStorage.setItem('playerMin', min ? '1' : '0'); } catch (e) {}
 }
 
 document.querySelectorAll('.lang-nav button').forEach(btn => btn.addEventListener('click', () => {

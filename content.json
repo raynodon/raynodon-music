@@ -39,5 +39,11 @@
       { "label": { "en": "Amazon Music", "zh": "Amazon Music", "ja": "Amazon Music" }, "url": "https://music.amazon.com/artists/B0GKWPL6ND/raynodon", "icon": "fa-brands fa-amazon", "image": "" }
     ]
   },
+  "player": {
+    "show": true,
+    "title": { "en": "Listen here", "zh": "在这里试听", "ja": "ここで試聴" },
+    "url": "https://open.spotify.com/artist/6FVhtMW0IvGPBUEmEAO0O6",
+    "height": 352
+  },
   "sections": []
 }
