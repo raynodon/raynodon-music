@@ -150,11 +150,11 @@ const SCHEMA = [
       youtubePlaylist: T.text('YouTube 播放列表 ID（可留空）', '播放列表网址里 list= 后面那串，也可以直接粘贴整个网址'),
       links: { ...LINK, addLabel: '添加平台链接' },
   }},
-  { title: '试听窗口（左侧）', icon: 'fa-solid fa-headphones', key: 'player', hint: '电脑上浮在页面左边，可以收起；手机上显示在页面下方。', fields: {
+  { title: '试听侧边栏', icon: 'fa-solid fa-headphones', key: 'player', hint: '贴在屏幕左边的侧边栏，访客点把手可以展开 / 收起。电脑上默认展开，手机上默认收起。', fields: {
       show: T.bool('显示试听窗口'),
       title: T.i18n('窗口标题'),
       url: T.text('要播放的链接', '直接粘贴分享链接即可：Spotify 的艺人 / 专辑 / 单曲 / 歌单，Apple Music 的专辑或单曲，网易云的单曲 / 歌单 / 专辑'),
-      height: { type: 'select', label: '窗口高度', options: [['152', '小（只显示一首）'], ['352', '中（显示歌曲列表）'], ['450', '大']] },
+      handle: T.i18n('把手文字（收起时露在左边的小标签，可留空）', '留空就用窗口标题'),
   }},
   { title: '自定义板块', icon: 'fa-solid fa-layer-group', key: 'sections', hint: '想加新内容（比如演出信息、专辑、合作、个人简历）就在这里加板块，会显示在音乐板块下面。', schema: {
       type: 'list', addLabel: '添加板块',

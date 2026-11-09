@@ -93,29 +93,36 @@
         .link-tree .lt-arrow { width: 24px; text-align: right; opacity: 0.4; font-size: 0.8rem; transition: 0.25s; }
         .link-tree a:hover .lt-arrow { opacity: 1; transform: translateX(3px); }
 
-        /* 试听侧窗口 */
+        /* 试听侧边栏：贴在屏幕左边，点把手展开 / 收起 */
         .player {
-            position: fixed; left: 30px; top: 100px; width: 300px; z-index: 1000;
-            border-radius: 15px; overflow: hidden;
-            background: rgba(15,15,15,0.85); border: 1px solid rgba(0,150,160,0.5); backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(0,150,160,0.2);
-            animation: fadeInSlidePlayer 1s ease-out;
+            position: fixed; left: 0; top: 45px; bottom: 0; width: 340px; max-width: 85vw; z-index: 1500;
+            display: flex; flex-direction: column;
+            background: rgba(10,12,16,0.92); border-right: 1px solid rgba(0,150,160,0.5); backdrop-filter: blur(14px);
+            box-shadow: 6px 0 30px rgba(0,0,0,0.5), 0 0 25px rgba(0,150,160,0.15);
+            transform: translateX(0); transition: transform 0.4s cubic-bezier(.2,.8,.2,1);
         }
-        body.no-banner .player { top: 60px; }
-        @keyframes fadeInSlidePlayer { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
-        .player-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; font-size: 0.85rem; font-weight: bold; }
-        .player-head i { color: #00c2cc; margin-right: 6px; }
-        .player-toggle { background: none; border: 0; color: #aaa; cursor: pointer; font-size: 0.9rem; padding: 2px 4px; }
-        .player-toggle:hover { color: #fff; }
-        .player iframe { display: block; width: 100%; border: 0; }
-        .player.min { width: auto; }
-        .player.min iframe { display: none; }
+        body.no-banner .player { top: 0; }
+        .player.closed { transform: translateX(-100%); box-shadow: none; }
+        .player-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 12px; font-size: 0.95rem; font-weight: bold; letter-spacing: 1px; }
+        .player-head i { color: #00c2cc; margin-right: 8px; }
+        .player-close { background: none; border: 0; color: #aaa; cursor: pointer; font-size: 1rem; padding: 4px; }
+        .player-close:hover { color: #fff; }
+        .player-body { flex: 1; padding: 0 14px 14px; min-height: 0; }
+        .player iframe { display: block; width: 100%; height: 100%; border: 0; border-radius: 12px; }
+
+        /* 把手：贴在侧边栏右边缘，收起时露在屏幕左侧 */
+        .player-handle {
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            writing-mode: vertical-rl; padding: 16px 8px; cursor: pointer;
+            background: linear-gradient(180deg, rgba(30,50,70,0.98), rgba(0,150,160,0.98));
+            color: #fff; border: 1px solid rgba(255,255,255,0.25); border-left: 0; border-radius: 0 12px 12px 0;
+            font-size: 12px; font-weight: bold; letter-spacing: 3px;
+            box-shadow: 4px 0 15px rgba(0,150,160,0.35);
+        }
+        .player-handle i { writing-mode: horizontal-tb; margin-bottom: 8px; }
+        .player-handle:hover { box-shadow: 4px 0 25px rgba(0,150,160,0.7); }
 
         @media (max-width: 1000px) { .side-commission { position: relative; right: 0; top: 0 !important; width: auto; margin-bottom: 20px; box-sizing: border-box; } }
-        @media (max-width: 1300px) {
-            .player { position: relative; left: 0; top: 0 !important; width: auto; margin-bottom: 20px; animation: none; }
-            .player.min { width: auto; }
-        }
     </style>
 </head>
 <body>
@@ -133,8 +140,8 @@
     </div>
     <div id="side"></div>
     <div id="main"></div>
-    <div id="playerSlot"></div>
 </div>
+<div id="playerSlot"></div>
 
 <script>
 let DATA = null;
@@ -259,26 +266,29 @@ function renderPlayer() {
     const key = embed + '|' + (p.height || '');
     if (!embed) { slot.innerHTML = ''; playerKey = ''; return; }
     if (key !== playerKey) {
-        let min = false;
-        try { min = localStorage.getItem('playerMin') === '1'; } catch (e) {}
+        // 默认：宽屏展开，窄屏（手机）收起只露把手；访客手动开关过的话记住他的选择
+        let closed = window.innerWidth < 1300;
+        try { const s = localStorage.getItem('playerClosed'); if (s !== null) closed = s === '1'; } catch (e) {}
         slot.innerHTML = `
-        <div class="player${min ? ' min' : ''}" id="player">
+        <aside class="player${closed ? ' closed' : ''}" id="player">
             <div class="player-head">
                 <span><i class="fa-solid fa-headphones"></i><span id="playerTitle"></span></span>
-                <button class="player-toggle" onclick="togglePlayer()" title="收起 / 展开"><i class="fa-solid ${min ? 'fa-chevron-down' : 'fa-minus'}"></i></button>
+                <button class="player-close" onclick="togglePlayer()" title="收起"><i class="fa-solid fa-angles-left"></i></button>
             </div>
-            <iframe src="${esc(embed)}" height="${Number(p.height) || 352}" loading="lazy"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
-        </div>`;
+            <div class="player-body">
+                <iframe src="${esc(embed)}" loading="lazy"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+            </div>
+            <div class="player-handle" onclick="togglePlayer()"><i class="fa-solid fa-headphones"></i><span id="playerHandleText"></span></div>
+        </aside>`;
         playerKey = key;
     }
     document.getElementById('playerTitle').textContent = t(p.title);
+    document.getElementById('playerHandleText').textContent = t(p.handle) || t(p.title);
 }
 function togglePlayer() {
-    const el = document.getElementById('player');
-    const min = el.classList.toggle('min');
-    el.querySelector('.player-toggle i').className = 'fa-solid ' + (min ? 'fa-chevron-down' : 'fa-minus');
-    try { localStorage.setItem('playerMin', min ? '1' : '0'); } catch (e) {}
+    const closed = document.getElementById('player').classList.toggle('closed');
+    try { localStorage.setItem('playerClosed', closed ? '1' : '0'); } catch (e) {}
 }
 
 document.querySelectorAll('.lang-nav button').forEach(btn => btn.addEventListener('click', () => {
