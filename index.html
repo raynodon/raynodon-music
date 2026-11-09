@@ -159,7 +159,14 @@ const iconHtml = (item, cls) => {
     if (item.icon) return `<i class="${esc(item.icon)}"></i>`;
     return '';
 };
-const linkBtn = l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="btn btn-outline btn-compact">${iconHtml(l, 'custom-icon')}${esc(t(l.label))}</a>`;
+// 链接地址可以按语言区分（比如中文访客跳抖音、其他跳 TikTok），没单独填的语言用通用地址
+const href = l => t(l.url);
+// 按当前语言的排序数字排列：填了数字的按数字从小到大排在前面，没填的保持原顺序跟在后面
+const byLang = list => (list || []).filter(l => href(l)).map((l, i) => ({ l, i })).sort((a, b) => {
+    const ra = Number(a.l.rank && a.l.rank[LANG]) || Infinity, rb = Number(b.l.rank && b.l.rank[LANG]) || Infinity;
+    return ra - rb || a.i - b.i;
+}).map(x => x.l);
+const linkBtn = l => `<a href="${esc(href(l))}" target="_blank" rel="noopener" class="btn btn-outline btn-compact">${iconHtml(l, 'custom-icon')}${esc(t(l.label))}</a>`;
 
 function render() {
     const d = DATA;
@@ -197,7 +204,7 @@ function render() {
                     <h1>${esc(d.name)}</h1>
                     <p style="color:#aaa; margin: 4px 0; font-size: 0.9rem;">${esc(t(d.role))}</p>
                     <div class="sns-icons">
-                        ${(d.sns || []).filter(s => s.url).map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.title || '')}">${iconHtml(s)}</a>`).join('')}
+                        ${byLang(d.sns).map(s => `<a href="${esc(href(s))}" target="_blank" rel="noopener" title="${esc(t(s.title))}">${iconHtml(s)}</a>`).join('')}
                     </div>
                 </div>
             </div>
@@ -210,14 +217,14 @@ function render() {
         html += `
         <div class="mini-section">
             <span style="font-size: 0.9rem; font-weight:bold;">${esc(t(sp.label))}</span>
-            <span class="btn-row">${sp.links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="btn btn-outline" style="margin:0; border-color:#9013fe;">${iconHtml(l, 'custom-icon')}${esc(t(l.label))}</a>`).join('')}</span>
+            <span class="btn-row">${byLang(sp.links).map(l => `<a href="${esc(href(l))}" target="_blank" rel="noopener" class="btn btn-outline" style="margin:0; border-color:#9013fe;">${iconHtml(l, 'custom-icon')}${esc(t(l.label))}</a>`).join('')}</span>
         </div>`;
     }
 
     // 音乐：Linktree 式入口
     const m = d.music || {};
     const treeLink = l => `
-        <a href="${esc(l.url)}" target="_blank" rel="noopener">
+        <a href="${esc(href(l))}" target="_blank" rel="noopener">
             <span class="lt-icon">${iconHtml(l)}</span>
             <span class="lt-label">${esc(t(l.label))}</span>
             <span class="lt-arrow"><i class="fa-solid fa-chevron-right"></i></span>
@@ -225,7 +232,7 @@ function render() {
     html += `
         <div class="section">
             <h3>${esc(t(m.title))}</h3>
-            <div class="link-tree">${(m.links || []).filter(l => l.url).map(treeLink).join('')}</div>
+            <div class="link-tree">${byLang(m.links).map(treeLink).join('')}</div>
             ${m.youtubePlaylist ? `<div class="video" style="margin: 20px 0 0 0;"><iframe src="https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(m.youtubePlaylist)}" allowfullscreen></iframe></div>` : ''}
         </div>`;
 
@@ -236,7 +243,7 @@ function render() {
         <div class="section">
             ${t(s.title) ? `<h3>${esc(t(s.title))}</h3>` : ''}
             ${t(s.text) ? `<p class="text">${esc(t(s.text))}</p>` : ''}
-            ${(s.links || []).length ? `<div class="btn-row">${s.links.map(linkBtn).join('')}</div>` : ''}
+            ${(s.links || []).length ? `<div class="btn-row">${byLang(s.links).map(linkBtn).join('')}</div>` : ''}
         </div>`;
     });
 
@@ -297,11 +304,23 @@ document.querySelectorAll('.lang-nav button').forEach(btn => btn.addEventListene
     render();
 }));
 
+// 第一次来的访客：按浏览器 / 系统语言自动选择；手动切换过就记住他的选择
+function detectLang() {
+    const langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+    for (const l of langs) {
+        const c = String(l).toLowerCase();
+        if (c.startsWith('zh')) return 'zh';
+        if (c.startsWith('ja')) return 'ja';
+        if (c.startsWith('en')) return 'en';
+    }
+    return null;
+}
+
 function start(data) {
     DATA = data;
     let saved = null;
     try { saved = localStorage.getItem('lang'); } catch (e) {}
-    LANG = saved || data.defaultLang || 'en';
+    LANG = saved || detectLang() || data.defaultLang || 'en';
     render();
 }
 

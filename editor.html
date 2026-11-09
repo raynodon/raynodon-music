@@ -51,6 +51,9 @@
   .addBtn { width: 100%; border-style: dashed; color: var(--muted); }
   .iconRow { display: flex; gap: 6px; align-items: center; }
   .iconRow .pv { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 6px; font-size: 15px; flex-shrink: 0; }
+  .rankRow { display: flex; gap: 10px; }
+  .rankRow label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+  .rankRow input { width: 56px; font: inherit; color: var(--text); background: #0e0e11; border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .help { background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.35); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; line-height: 1.7; }
   .help ol { margin: 4px 0 0; padding-left: 18px; }
@@ -104,14 +107,18 @@ const T = {
   i18n: (label, hint, multiline) => ({ type: 'i18n', label, hint, multiline }),
   bool: label => ({ type: 'bool', label }),
   icon: () => ({ type: 'icon', label: '图标' }),
+  url: () => ({ type: 'i18n', label: '链接地址', hint: '只填 EN 一格就所有语言通用。想让某种语言的访客跳到别处（比如中文访客跳抖音），就在那一格单独填。' }),
+  rank: () => ({ type: 'rank', label: '各语言的排序（可留空）', hint: '数字越小越靠前；空着的排在有数字的后面，按列表顺序。比如中文填 1，中文访客看到它就在第一个。' }),
 };
+const txt = v => !v ? '' : typeof v === 'string' ? v : (v.zh || v.en || v.ja || '');
 const LINK = {
   type: 'list', addLabel: '添加链接',
-  summary: v => [v.icon, (v.label && (v.label.zh || v.label.en)) || v.url || '新链接'],
+  summary: v => [v.icon, txt(v.label) || txt(v.url) || '新链接'],
   blank: () => ({ label: { en: '', zh: '', ja: '' }, url: '', icon: 'fa-solid fa-link', image: '' }),
   fields: {
     label: T.i18n('按钮文字', '只填一种语言也可以，其他语言会自动显示它'),
-    url: T.text('链接地址'),
+    url: T.url(),
+    rank: T.rank(),
     icon: T.icon(),
     image: T.text('或者用图片作图标（填图片文件名，如 netease.png）', '图片要先上传到仓库里。填了图片就不显示上面的图标'),
   }
@@ -122,13 +129,13 @@ const SCHEMA = [
       avatar: T.text('头像文件名', '图片要先上传到仓库，例如 avatar.gif'),
       role: T.i18n('头衔（名字下面的小字）'),
       about: T.i18n('简介（可留空）', '支持换行', true),
-      defaultLang: { type: 'select', label: '访客第一次打开时的语言', options: [['en', 'English'], ['zh', '中文'], ['ja', '日本語']] },
+      defaultLang: { type: 'select', label: '备用语言（网站会按访客的系统语言自动选中 / 英 / 日，识别不出来时用这个）', options: [['en', 'English'], ['zh', '中文'], ['ja', '日本語']] },
   }},
   { title: '社交媒体图标', icon: 'fa-solid fa-share-nodes', key: 'sns', hint: '显示在名字下面的一排小图标。用 ↑↓ 调整顺序。', schema: {
       type: 'list', addLabel: '添加社交账号',
-      summary: v => [v.icon, v.title || v.url || '新账号'],
+      summary: v => [v.icon, txt(v.title) || txt(v.url) || '新账号'],
       blank: () => ({ icon: 'fa-brands fa-instagram', url: '', title: '' }),
-      fields: { icon: T.icon(), url: T.text('链接地址'), title: T.text('鼠标悬停提示（可留空）'), image: T.text('或者用图片作图标（可留空）') }
+      fields: { icon: T.icon(), url: T.url(), title: T.i18n('鼠标悬停提示（可留空）'), rank: T.rank(), image: T.text('或者用图片作图标（可留空）') }
   }},
   { title: '顶部滚动横幅', icon: 'fa-solid fa-bullhorn', key: 'banner', fields: {
       show: T.bool('显示横幅'),
@@ -228,6 +235,14 @@ function fieldNode(spec, obj, key, rerender) {
       ICONS.map(([v, l]) => { const o = el('option', { value: v }, l); if ((obj[key] || '') === v) o.selected = true; return o; }));
     if (obj[key] && !ICONS.some(([v]) => v === obj[key])) { const o = el('option', { value: obj[key] }, obj[key]); o.selected = true; sel.prepend(o); }
     wrap.append(el('div', { class: 'iconRow' }, pv, sel));
+  } else if (spec.type === 'rank') {
+    if (typeof obj[key] !== 'object' || obj[key] == null) obj[key] = {};
+    const row = el('div', { class: 'rankRow' });
+    [['zh', '中'], ['en', 'EN'], ['ja', '日']].forEach(([lang, tag]) => {
+      row.append(el('label', {}, tag, el('input', { type: 'number', min: '1', value: obj[key][lang] ?? '', placeholder: '—',
+        oninput: e => { const v = e.target.value; if (v === '') delete obj[key][lang]; else obj[key][lang] = Number(v); changed(); } })));
+    });
+    wrap.append(row);
   } else if (spec.type === 'list') {
     wrap.append(listNode(spec, obj, key));
   }
