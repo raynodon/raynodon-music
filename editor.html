@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>网站编辑器</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --bg: #111114; --panel: #19191e; --card: #212128; --line: #33333d;
+    --text: #e8e8ee; --muted: #8c8c99; --accent: #7c3aed; --accent2: #00969f; --danger: #e5484d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, 'PingFang SC', 'Hiragino Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; height: 100vh; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0 auto 0 0; font-weight: 600; }
+  header .status { color: var(--muted); font-size: 12px; margin-right: 8px; }
+  button, .filebtn { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 7px; padding: 6px 12px; cursor: pointer; }
+  button:hover, .filebtn:hover { border-color: #55556a; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.danger { color: var(--danger); }
+  button.icon { padding: 4px 8px; background: transparent; }
+  main { flex: 1; display: flex; min-height: 0; }
+  #form { width: 480px; flex-shrink: 0; overflow-y: auto; padding: 16px; border-right: 1px solid var(--line); }
+  #previewWrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .previewBar { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); align-items: center; }
+  .previewBar span { color: var(--muted); margin-right: auto; }
+  .previewBar button.on { border-color: var(--accent2); color: #fff; }
+  iframe { flex: 1; border: 0; width: 100%; background: #000; }
+
+  details.group { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; }
+  details.group > summary { padding: 11px 14px; font-weight: 600; font-size: 14px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.group > summary::before { content: '▸'; color: var(--muted); transition: .15s; }
+  details.group[open] > summary::before { transform: rotate(90deg); }
+  .groupBody { padding: 0 14px 14px; }
+  .hint { color: var(--muted); font-size: 12px; margin: -4px 0 10px; line-height: 1.5; }
+  .field { margin-bottom: 10px; }
+  .field > label { display: block; color: var(--muted); margin-bottom: 4px; font-size: 12px; }
+  input[type=text], textarea, select { width: 100%; font: inherit; color: var(--text); background: #0e0e11; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+  .i18n { display: grid; gap: 4px; }
+  .i18n .row { display: flex; gap: 6px; align-items: flex-start; }
+  .i18n .tag { flex-shrink: 0; width: 22px; text-align: center; color: var(--muted); font-size: 11px; padding-top: 8px; }
+  .toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); }
+  .toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .item { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+  .item .itemHead { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .item .itemHead .title { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .itemHead .title i { width: 18px; color: var(--accent2); }
+  .addBtn { width: 100%; border-style: dashed; color: var(--muted); }
+  .iconRow { display: flex; gap: 6px; align-items: center; }
+  .iconRow .pv { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 6px; font-size: 15px; flex-shrink: 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .help { background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.35); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; line-height: 1.7; }
+  .help ol { margin: 4px 0 0; padding-left: 18px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent2); color: #fff; padding: 8px 16px; border-radius: 8px; opacity: 0; transition: .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  @media (max-width: 900px) {
+    main { flex-direction: column-reverse; }
+    #form { width: 100%; border-right: 0; }
+    #previewWrap { height: 45vh; flex: none; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><i class="fa-solid fa-pen-to-square"></i> 网站编辑器</h1>
+  <span class="status" id="status"></span>
+  <label class="filebtn"><i class="fa-solid fa-upload"></i> 导入 content.json<input type="file" accept=".json,application/json" id="importFile" hidden></label>
+  <button id="resetBtn" title="放弃本地修改，重新读取网站上的 content.json"><i class="fa-solid fa-rotate-left"></i> 还原</button>
+  <button class="primary" id="downloadBtn"><i class="fa-solid fa-download"></i> 下载 content.json</button>
+</header>
+<main>
+  <div id="form"></div>
+  <div id="previewWrap">
+    <div class="previewBar">
+      <span>实时预览</span>
+      <button data-lang="zh">中</button><button data-lang="en">EN</button><button data-lang="ja">日</button>
+    </div>
+    <iframe id="preview" src="index.html#preview"></iframe>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- 可选图标 ----------
+const ICONS = [
+  ['', '（不用图标）'],
+  ['fa-brands fa-bilibili', 'Bilibili'], ['fa-brands fa-youtube', 'YouTube'], ['fa-brands fa-tiktok', 'TikTok / 抖音'],
+  ['fa-brands fa-x-twitter', 'X / Twitter'], ['fa-brands fa-instagram', 'Instagram'], ['fa-brands fa-weibo', '微博'],
+  ['fa-brands fa-spotify', 'Spotify'], ['fa-brands fa-apple', 'Apple Music'], ['fa-brands fa-amazon', 'Amazon'],
+  ['fa-brands fa-soundcloud', 'SoundCloud'], ['fa-brands fa-bandcamp', 'Bandcamp'], ['fa-brands fa-itunes-note', '音乐（音符）'],
+  ['fa-brands fa-discord', 'Discord'], ['fa-brands fa-twitch', 'Twitch'], ['fa-brands fa-github', 'GitHub'],
+  ['fa-brands fa-patreon', 'Patreon'], ['fa-brands fa-weixin', '微信'], ['fa-brands fa-qq', 'QQ'],
+  ['fa-solid fa-music', '音乐'], ['fa-solid fa-compact-disc', '专辑 / 唱片'], ['fa-solid fa-ticket', '演出 / 门票'],
+  ['fa-solid fa-envelope', '邮件'], ['fa-solid fa-link', '链接'], ['fa-solid fa-store', '商店'],
+  ['fa-solid fa-heart', '支持 / 赞助'], ['fa-solid fa-gamepad', '游戏'], ['fa-solid fa-film', '视频'], ['fa-solid fa-book', '文章']
+];
+
+// ---------- 表单结构 ----------
+const T = {
+  text: (label, hint) => ({ type: 'text', label, hint }),
+  i18n: (label, hint, multiline) => ({ type: 'i18n', label, hint, multiline }),
+  bool: label => ({ type: 'bool', label }),
+  icon: () => ({ type: 'icon', label: '图标' }),
+};
+const LINK = {
+  type: 'list', addLabel: '添加链接',
+  summary: v => [v.icon, (v.label && (v.label.zh || v.label.en)) || v.url || '新链接'],
+  blank: () => ({ label: { en: '', zh: '', ja: '' }, url: '', icon: 'fa-solid fa-link', image: '' }),
+  fields: {
+    label: T.i18n('按钮文字', '只填一种语言也可以，其他语言会自动显示它'),
+    url: T.text('链接地址'),
+    icon: T.icon(),
+    image: T.text('或者用图片作图标（填图片文件名，如 netease.png）', '图片要先上传到仓库里。填了图片就不显示上面的图标'),
+  }
+};
+const SCHEMA = [
+  { title: '基本信息', icon: 'fa-solid fa-user', fields: {
+      name: T.text('艺名'),
+      avatar: T.text('头像文件名', '图片要先上传到仓库，例如 avatar.gif'),
+      role: T.i18n('头衔（名字下面的小字）'),
+      about: T.i18n('简介（可留空）', '支持换行', true),
+      defaultLang: { type: 'select', label: '访客第一次打开时的语言', options: [['en', 'English'], ['zh', '中文'], ['ja', '日本語']] },
+  }},
+  { title: '社交媒体图标', icon: 'fa-solid fa-share-nodes', key: 'sns', hint: '显示在名字下面的一排小图标。用 ↑↓ 调整顺序。', schema: {
+      type: 'list', addLabel: '添加社交账号',
+      summary: v => [v.icon, v.title || v.url || '新账号'],
+      blank: () => ({ icon: 'fa-brands fa-instagram', url: '', title: '' }),
+      fields: { icon: T.icon(), url: T.text('链接地址'), title: T.text('鼠标悬停提示（可留空）'), image: T.text('或者用图片作图标（可留空）') }
+  }},
+  { title: '顶部滚动横幅', icon: 'fa-solid fa-bullhorn', key: 'banner', fields: {
+      show: T.bool('显示横幅'),
+      text: T.i18n('横幅文字', '适合放新专辑、新歌、演出宣传'),
+      url: T.text('点击后跳转的链接'),
+  }},
+  { title: '委托卡片（右侧）', icon: 'fa-solid fa-envelope-open-text', key: 'commission', fields: {
+      show: T.bool('显示委托卡片'),
+      title: T.i18n('标题'), desc: T.i18n('说明', '', true), button: T.i18n('按钮文字'),
+      email: T.text('邮箱'),
+  }},
+  { title: '赞助', icon: 'fa-solid fa-heart', key: 'support', fields: {
+      show: T.bool('显示赞助栏'),
+      label: T.i18n('左边的文字'),
+      links: LINK,
+  }},
+  { title: '音乐 / 作品', icon: 'fa-solid fa-music', key: 'music', fields: {
+      title: T.i18n('板块标题'),
+      youtubePlaylist: T.text('YouTube 播放列表 ID（可留空）', '播放列表网址里 list= 后面那串，也可以直接粘贴整个网址'),
+      links: { ...LINK, addLabel: '添加平台链接' },
+  }},
+  { title: '自定义板块', icon: 'fa-solid fa-layer-group', key: 'sections', hint: '想加新内容（比如演出信息、专辑、合作、个人简历）就在这里加板块，会显示在音乐板块下面。', schema: {
+      type: 'list', addLabel: '添加板块',
+      summary: v => ['fa-solid fa-square', (v.title && (v.title.zh || v.title.en)) || '新板块'],
+      blank: () => ({ title: { en: '', zh: '新板块', ja: '' }, text: { en: '', zh: '', ja: '' }, links: [] }),
+      fields: { title: T.i18n('标题'), text: T.i18n('正文（可留空）', '支持换行', true), links: LINK }
+  }},
+];
+
+// ---------- 状态 ----------
+let DATA = null;
+let previewLang = 'zh';
+const DRAFT_KEY = 'site-editor-draft';
+const $ = s => document.querySelector(s);
+const el = (tag, props = {}, ...kids) => {
+  const n = document.createElement(tag);
+  Object.entries(props).forEach(([k, v]) => {
+    if (k === 'class') n.className = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (k === 'html') n.innerHTML = v;
+    else n.setAttribute(k, v);
+  });
+  kids.flat().forEach(k => k != null && n.append(k));
+  return n;
+};
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800); }
+
+let saveTimer;
+function changed() {
+  sendPreview();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(DATA)); $('#status').textContent = '草稿已自动保存（仅本机）'; } catch (e) {}
+  }, 400);
+}
+function sendPreview() {
+  const f = $('#preview');
+  if (f.contentWindow) f.contentWindow.postMessage({ type: 'preview', content: DATA, lang: previewLang }, '*');
+}
+
+// ---------- 渲染表单 ----------
+function fieldNode(spec, obj, key, rerender) {
+  const wrap = el('div', { class: 'field' });
+  if (spec.type !== 'bool') wrap.append(el('label', {}, spec.label));
+  if (spec.hint) wrap.append(el('div', { class: 'hint', style: 'margin:0 0 4px' }, spec.hint));
+
+  if (spec.type === 'text') {
+    wrap.append(el('input', { type: 'text', value: obj[key] ?? '', oninput: e => { obj[key] = e.target.value; changed(); } }));
+  } else if (spec.type === 'select') {
+    const s = el('select', { onchange: e => { obj[key] = e.target.value; changed(); } },
+      spec.options.map(([v, l]) => { const o = el('option', { value: v }, l); if (obj[key] === v) o.selected = true; return o; }));
+    wrap.append(s);
+  } else if (spec.type === 'bool') {
+    const cb = el('input', { type: 'checkbox', onchange: e => { obj[key] = e.target.checked; changed(); } });
+    cb.checked = !!obj[key];
+    wrap.append(el('label', { class: 'toggle' }, cb, spec.label));
+  } else if (spec.type === 'i18n') {
+    if (typeof obj[key] !== 'object' || obj[key] == null) obj[key] = { en: obj[key] || '', zh: '', ja: '' };
+    const box = el('div', { class: 'i18n' });
+    [['zh', '中'], ['en', 'EN'], ['ja', '日']].forEach(([lang, tag]) => {
+      const props = { value: obj[key][lang] ?? '', placeholder: { zh: '中文', en: 'English', ja: '日本語' }[lang],
+        oninput: e => { obj[key][lang] = e.target.value; changed(); rerender && rerender(); } };
+      const input = spec.multiline ? el('textarea', props) : el('input', { type: 'text', ...props });
+      if (spec.multiline) input.value = obj[key][lang] ?? '';
+      box.append(el('div', { class: 'row' }, el('span', { class: 'tag' }, tag), input));
+    });
+    wrap.append(box);
+  } else if (spec.type === 'icon') {
+    const pv = el('span', { class: 'pv', html: obj[key] ? `<i class="${obj[key]}"></i>` : '' });
+    const sel = el('select', { onchange: e => { obj[key] = e.target.value; pv.innerHTML = obj[key] ? `<i class="${obj[key]}"></i>` : ''; changed(); rerender && rerender(); } },
+      ICONS.map(([v, l]) => { const o = el('option', { value: v }, l); if ((obj[key] || '') === v) o.selected = true; return o; }));
+    if (obj[key] && !ICONS.some(([v]) => v === obj[key])) { const o = el('option', { value: obj[key] }, obj[key]); o.selected = true; sel.prepend(o); }
+    wrap.append(el('div', { class: 'iconRow' }, pv, sel));
+  } else if (spec.type === 'list') {
+    wrap.append(listNode(spec, obj, key));
+  }
+  return wrap;
+}
+
+function listNode(spec, obj, key) {
+  if (!Array.isArray(obj[key])) obj[key] = [];
+  const arr = obj[key];
+  const box = el('div');
+  const draw = () => {
+    box.innerHTML = '';
+    arr.forEach((item, i) => {
+      const titleEl = el('span', { class: 'title' });
+      const updateTitle = () => { const [ic, txt] = spec.summary(item); titleEl.innerHTML = (ic ? `<i class="${ic}"></i> ` : '') ; titleEl.append(txt); };
+      updateTitle();
+      const move = d => { const j = i + d; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; draw(); changed(); };
+      const head = el('div', { class: 'itemHead' }, titleEl,
+        el('button', { class: 'icon', title: '上移', onclick: () => move(-1) }, '↑'),
+        el('button', { class: 'icon', title: '下移', onclick: () => move(1) }, '↓'),
+        el('button', { class: 'icon danger', title: '删除', onclick: () => { if (confirm('删除这一项？')) { arr.splice(i, 1); draw(); changed(); } } }, '✕'));
+      const card = el('div', { class: 'item' }, head);
+      Object.entries(spec.fields).forEach(([k, s]) => card.append(fieldNode(s, item, k, updateTitle)));
+      box.append(card);
+    });
+    box.append(el('button', { class: 'addBtn', onclick: () => { arr.push(spec.blank()); draw(); changed(); } }, '＋ ' + (spec.addLabel || '添加')));
+  };
+  draw();
+  return box;
+}
+
+function renderForm() {
+  const form = $('#form');
+  form.innerHTML = '';
+  form.append(el('div', { class: 'help', html:
+    '<b>怎么用</b><ol><li>在左边修改，右边会实时显示效果（草稿会自动存在这台设备上）</li>' +
+    '<li>改完点右上角 <b>下载 content.json</b></li>' +
+    '<li>到 GitHub 仓库页面 → <b>Add file → Upload files</b>，把它拖进去覆盖旧文件 → <b>Commit</b></li>' +
+    '<li>新图片（头像、图标）也用同样方法上传，再在这里填文件名</li></ol>' }));
+  SCHEMA.forEach((g, gi) => {
+    const det = el('details', { class: 'group' });
+    if (gi === 0) det.open = true;
+    det.append(el('summary', { html: `<i class="${g.icon}"></i> ${g.title}` }));
+    const body = el('div', { class: 'groupBody' });
+    if (g.hint) body.append(el('div', { class: 'hint', style: 'margin:0 0 10px' }, g.hint));
+    if (g.schema) {
+      body.append(listNode(g.schema, DATA, g.key));
+    } else {
+      const target = g.key ? (DATA[g.key] = DATA[g.key] || {}) : DATA;
+      Object.entries(g.fields).forEach(([k, s]) => body.append(fieldNode(s, target, k)));
+    }
+    det.append(body);
+    form.append(det);
+  });
+}
+
+// ---------- 导入 / 导出 ----------
+function normalize(d) {
+  // 粘贴了完整的 YouTube 播放列表网址时，自动取出 ID
+  const m = d.music && d.music.youtubePlaylist && String(d.music.youtubePlaylist).match(/[?&]list=([^&#]+)/);
+  if (m) d.music.youtubePlaylist = m[1];
+  return d;
+}
+function load(d, msg) { DATA = d; renderForm(); sendPreview(); if (msg) $('#status').textContent = msg; }
+
+$('#downloadBtn').onclick = () => {
+  normalize(DATA);
+  const blob = new Blob([JSON.stringify(DATA, null, 2) + '\n'], { type: 'application/json' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: 'content.json' });
+  document.body.append(a); a.click(); a.remove();
+  toast('已下载 content.json，记得上传到 GitHub');
+  renderForm();
+};
+$('#importFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(txt => { try { load(JSON.parse(txt), '已导入 ' + f.name); changed(); } catch (err) { alert('文件格式不对：' + err.message); } });
+  e.target.value = '';
+};
+$('#resetBtn').onclick = () => {
+  if (!confirm('放弃这台设备上的草稿，重新读取网站当前的 content.json？')) return;
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+  loadRemote();
+};
+document.querySelectorAll('.previewBar button').forEach(b => b.onclick = () => {
+  previewLang = b.dataset.lang;
+  document.querySelectorAll('.previewBar button').forEach(x => x.classList.toggle('on', x === b));
+  sendPreview();
+});
+document.querySelector('.previewBar button[data-lang=zh]').classList.add('on');
+$('#preview').addEventListener('load', sendPreview);
+
+function loadRemote() {
+  fetch('content.json', { cache: 'no-store' })
+    .then(r => { if (!r.ok) throw 0; return r.json(); })
+    .then(d => load(d, '已读取网站当前内容'))
+    .catch(() => {
+      $('#form').innerHTML = '<div class="help">没能自动读取 content.json（直接双击打开本地文件时会这样）。<br>请点右上角 <b>导入 content.json</b> 手动选择文件，或者通过网站地址打开本页面。</div>';
+    });
+}
+
+// 启动：有草稿就用草稿
+let draft = null;
+try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
+if (draft) load(draft, '已恢复上次未完成的草稿'); else loadRemote();
+</script>
+</body>
+</html>

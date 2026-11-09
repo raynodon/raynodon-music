@@ -1,0 +1,43 @@
+{
+  "name": "raynodon",
+  "avatar": "avatar.gif",
+  "defaultLang": "en",
+  "role": { "en": "Music Maker", "zh": "音乐人 / Music Maker", "ja": "ミュージックメーカー" },
+  "about": { "en": "", "zh": "", "ja": "" },
+  "banner": {
+    "show": true,
+    "text": "NEW ALBUM \"透明小说\" OUT NOW ✧ CLICK TO LISTEN",
+    "url": "https://www.dizzylab.net/d/toumingxiaoshuo/"
+  },
+  "sns": [
+    { "icon": "fa-brands fa-bilibili", "url": "https://space.bilibili.com/631912286" },
+    { "icon": "fa-brands fa-youtube", "url": "https://www.youtube.com/@RAYnodon" },
+    { "icon": "fa-brands fa-tiktok", "url": "https://www.tiktok.com/@raynodon" },
+    { "icon": "fa-brands fa-x-twitter", "url": "https://x.com/_raynodon_" }
+  ],
+  "commission": {
+    "show": true,
+    "title": { "en": "Free Commission", "zh": "免费委托", "ja": "無料依頼" },
+    "desc": { "en": "Compose for interesting projects for FREE.", "zh": "为有趣的项目提供免费作曲。", "ja": "面白いプロジェクトに無料で作曲します。" },
+    "button": { "en": "Email Me", "zh": "发送邮件", "ja": "メールを送る" },
+    "email": "raynodon@outlook.com"
+  },
+  "support": {
+    "show": true,
+    "label": { "en": "Support my creation:", "zh": "赞助我的创作：", "ja": "活動を支援する：" },
+    "links": [
+      { "label": { "en": "Afdian", "zh": "爱发电", "ja": "Afdian" }, "url": "https://afdian.com/a/raynodon", "icon": "", "image": "afdian_.png" }
+    ]
+  },
+  "music": {
+    "title": { "en": "Music / Works", "zh": "音乐 / 作品", "ja": "音楽 / 作品" },
+    "youtubePlaylist": "PLumnOpGCaC3zBTO_wNkSU3hT8RG9v3Jju",
+    "links": [
+      { "label": { "en": "Spotify", "zh": "Spotify", "ja": "Spotify" }, "url": "https://open.spotify.com/artist/6FVhtMW0IvGPBUEmEAO0O6", "icon": "fa-brands fa-spotify", "image": "" },
+      { "label": { "en": "NetEase", "zh": "网易云音乐", "ja": "NetEase" }, "url": "https://music.163.com/#/artist?id=34381748", "icon": "", "image": "netease.png" },
+      { "label": { "en": "Apple Music", "zh": "Apple Music", "ja": "Apple Music" }, "url": "https://music.apple.com/cn/artist/raynodon/1872558339", "icon": "fa-brands fa-apple", "image": "" },
+      { "label": { "en": "Amazon Music", "zh": "Amazon Music", "ja": "Amazon Music" }, "url": "https://music.amazon.com/artists/B0GKWPL6ND/raynodon", "icon": "fa-brands fa-amazon", "image": "" }
+    ]
+  },
+  "sections": []
+}
